@@ -136,6 +136,11 @@ Witt.can_dig = function(node,tool)
            return true
        end
    end
+   
+   -- node is not registered
+   if not minetest.registered_nodes[node.name] then
+       return true
+   end
 
    return false
 end
@@ -170,44 +175,52 @@ local function capitalize(str) -- Capitalize every word in a string, looks good 
 end
 
 Witt.describe_node = function (node) -- Return a string that describes the node and mod
-    local mod, nodename = minetest.registered_nodes[node.name].mod_origin, minetest.registered_nodes[node.name].description -- Get basic (not pretty) info
-    if nodename == "" then -- If it doesn't have a proper name, just use the technical one
-        nodename = node.name
+	if minetest.registered_nodes[node.name] then -- indexing a nil value will cause a crash, so only continue with the function if the node actually exists in the registered_nodes table
+		local mod, nodename = minetest.registered_nodes[node.name].mod_origin, minetest.registered_nodes[node.name].description -- Get basic (not pretty) info
+		if nodename == "" then -- If it doesn't have a proper name, just use the technical one
+		    nodename = node.name
+		end
+		mod = remove_unneeded(capitalize(mod)) -- Make it look good
+		nodename = remove_unneeded(nodename)
+		
+		return nodename, mod
+    else -- if the node does not exist in the registered_nodes table, return the technical name and "Unknown Node" as the mod
+    	return node.name, "Unknown Node" -- "Unknown Node" isn't really a mod but hopefully that's not a problem
     end
-    mod = remove_unneeded(capitalize(mod)) -- Make it look good
-    nodename = remove_unneeded(nodename)
-    
-    return nodename, mod
 end
 
 Witt.handle_tiles =  function (node) -- Return an image of the tile
-    local tiles = node.tiles
-    local resize_string = ""
+	if node then -- indexing a nil value (with node.tiles) will cause a crash, so only continue with the function if the node actually exists
+		local tiles = node.tiles
+		local resize_string = ""
 
-    if tiles then -- Make sure every tile is a string
-        for i,v in pairs(tiles) do
-            if type(v) == "table" then
-                if tiles[i].name then
-                    tiles[i] = tiles[i].name
-                else
-                    return ""
-                end
-            end
-        end
+		if tiles then -- Make sure every tile is a string
+		    for i,v in pairs(tiles) do
+		        if type(v) == "table" then
+		            if tiles[i].name then
+		                tiles[i] = tiles[i].name
+		            else
+		                return ""
+		            end
+		        end
+		    end
 
-        -- These are the types it can draw correctly
-        if node.drawtype == "normal" or node.drawtype == "allfaces" or node.drawtype == "allfaces_optional" or node.drawtype == "glasslike" or node.drawtype == "glasslike_framed" or node.drawtype == "glasslike_framed_optional" then
-            if #tiles == 1 then -- This type of block has only 1 image, so it must be on all faces
-                return minetest.inventorycube(tiles[1], tiles[1], tiles[1]) .. resize_string
-            elseif #tiles == 3 then -- This type of block has 3 images, so it's probably 1 on top, 1 on bottom, the rest on the side
-                return minetest.inventorycube(tiles[1], tiles[3], tiles[3]) .. resize_string
-            elseif #tiles == 6 then -- This one has 6 images, so display the ones we can
-                return minetest.inventorycube(tiles[1], tiles[6], tiles[5]) .. resize_string -- Not actually sure if 5 is the correct number but it's basically the same thing most of the time
-            end
-        end
+		    -- These are the types it can draw correctly
+		    if node.drawtype == "normal" or node.drawtype == "allfaces" or node.drawtype == "allfaces_optional" or node.drawtype == "glasslike" or node.drawtype == "glasslike_framed" or node.drawtype == "glasslike_framed_optional" then
+		        if #tiles == 1 then -- This type of block has only 1 image, so it must be on all faces
+		            return minetest.inventorycube(tiles[1], tiles[1], tiles[1]) .. resize_string
+		        elseif #tiles == 3 then -- This type of block has 3 images, so it's probably 1 on top, 1 on bottom, the rest on the side
+		            return minetest.inventorycube(tiles[1], tiles[3], tiles[3]) .. resize_string
+		        elseif #tiles == 6 then -- This one has 6 images, so display the ones we can
+		            return minetest.inventorycube(tiles[1], tiles[6], tiles[5]) .. resize_string -- Not actually sure if 5 is the correct number but it's basically the same thing most of the time
+		        end
+		    end
+		end
+
+    	return "" -- If it can't do anything, return with a blank image
+    else -- if node is nil, return the unknown node texture
+    	return minetest.inventorycube("unknown_node.png", "unknown_node.png", "unknown_node.png")
     end
-
-    return "" -- If it can't do anything, return with a blank image
 end
 
 local function update_player_hud_pos(player, to_x, to_y) -- Change position of hud elements
