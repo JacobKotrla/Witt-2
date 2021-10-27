@@ -179,6 +179,11 @@ Witt.describe_node = function (node) -- Return a string that describes the node 
 		local mod, nodename = minetest.registered_nodes[node.name].mod_origin, minetest.registered_nodes[node.name].description -- Get basic (not pretty) info
 		if nodename == "" then -- If it doesn't have a proper name, just use the technical one
 		    nodename = node.name
+		else -- if a proper name does exist, get rid of everything but the first line
+			local new_line_index = nodename:find "\n"
+			if new_line_index then -- if a newline char was found
+				nodename = nodename:sub(1, new_line_index - 1)
+			end
 		end
 		mod = remove_unneeded(capitalize(mod)) -- Make it look good
 		nodename = remove_unneeded(nodename)
